@@ -2,6 +2,11 @@ import yfinance as yf
 import pandas_ta as ta
 from forex_python.converter import CurrencyRates
 import pandas as pd
+from langchain_community.tools.asknews import AskNewsSearch
+import requests
+from typing import Optional
+NEWS_API_KEY = "cdc34a7f0c37488881d27ae0345b415e"  # Replace with your free API Key
+NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 
 def fetch_stock_price(symbol: str, timeframe: str = "daily"):
@@ -176,3 +181,125 @@ def fetch_fundamental_data(ticker: str, report_type: str):
         "Report Type": report_type,
         "Latest Data": latest_data
     }
+    
+
+def fetch_news_asknews(query: str, num_results: int = 5):
+    """Fetch latest news using LangChain's AskNews tool."""
+    news_tool = AskNewsSearch()
+
+    results = news_tool.run(query)
+    
+    if not results:
+        return {"message": f"No news found for '{query}'."}
+
+    # Extract top 'num_results' articles
+    news_summary = results[:num_results]
+
+    return {
+        "Query": query,
+        "Latest News": news_summary
+    }
+    
+    
+def fetch_news_newsapi(query: str, num_results: int = 5):
+    """Fetch latest news using NewsAPI (open-source)."""
+    
+    params = {
+        "q": query,
+        "language": "en",
+        "sortBy": "publishedAt",
+        "apiKey": NEWS_API_KEY,
+        "pageSize": num_results
+    }
+    
+    response = requests.get(NEWS_API_URL, params=params)
+    data = response.json()
+    
+    if data.get("status") != "ok":
+        return {"error": "Failed to fetch news.", "details": data}
+
+    articles = data.get("articles", [])
+    
+    if not articles:
+        return {"message": f"No news found for '{query}'."}
+
+    news_summary = [{"title": article["title"], "url": article["url"]} for article in articles[:num_results]]
+    
+    return {
+        "Query": query,
+        "Latest News": news_summary
+    }
+    
+def parse_and_generate_financial_report(stock_data=None, fundamental_data=None, forex_data=None, crypto_data=None, news_data=None):
+    """Parse and present financial data in a detailed report format."""
+    
+    report = "📝 **Detailed Financial Report**\n"
+    report += "=" * 50 + "\n"
+
+    # Stock Price Section
+    if stock_data:
+        report += "📈 **Stock Price Data:**\n"
+        for key, value in stock_data.items():
+            report += f"{key}: {value}\n"
+        report += "-" * 50 + "\n"
+
+    # Fundamental Analysis Section
+    if fundamental_data:
+        report += "📊 **Fundamental Analysis:**\n"
+        for key, value in fundamental_data.get("Latest Data", {}).items():
+            report += f"{key:<30}: {value}\n"
+        report += "-" * 50 + "\n"
+
+    # Forex Data Section
+    if forex_data:
+        report += "💱 **Forex Data:**\n"
+        for currency_pair, value in forex_data.items():
+            report += f"{currency_pair}: {value}\n"
+        report += "-" * 50 + "\n"
+
+    # Cryptocurrency Data Section
+    if crypto_data:
+        report += "💰 **Cryptocurrency Data:**\n"
+        for crypto, value in crypto_data.items():
+            report += f"{crypto}: {value}\n"
+        report += "-" * 50 + "\n"
+    
+    # Financial News Section
+    if news_data:
+        report += "📰 **Financial News:**\n"
+        for article in news_data:
+            report += f"- {article.get('title', 'No Title')} ({article.get('source', 'Unknown Source')})\n"
+        report += "-" * 50 + "\n"
+    
+    if not any([stock_data, fundamental_data, forex_data, crypto_data, news_data]):
+        report += "No data available for the requested report."
+
+    return report
+
+
+
+def fetch_historical_price_data(ticker: str, start_date: Optional[str], end_date: Optional[str], interval: str):
+    """Fetch historical price data for stocks, crypto, or forex."""
+    stock = yf.Ticker(ticker)
+    
+    # Fetch data within the specified date range and interval
+    try:
+        data = stock.history(start=start_date, end=end_date, interval=interval)
+    except Exception as e:
+        return {"error": str(e)}
+    
+    if data.empty:
+        return f"No historical price data found for {ticker} between {start_date} and {end_date}."
+    
+    # Format report for the latest records
+    report = f"📈 **Historical Price Data for {ticker}**\n"
+    report += "=" * 50 + "\n"
+    report += f"Interval: {interval}\n"
+    report += "-" * 50 + "\n"
+    
+    # Show the latest 5 data points
+    latest_data = data.tail(5).reset_index()
+    for i, row in latest_data.iterrows():
+        report += f"{row['Date']}: Open={row['Open']:.2f}, High={row['High']:.2f}, Low={row['Low']:.2f}, Close={row['Close']:.2f}\n"
+    
+    return report

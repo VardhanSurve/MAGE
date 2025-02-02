@@ -19,7 +19,7 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install --upgrade pip
 RUN pip install --upgrade -r requirements.txt
-
+RUN pip install asknews
 # Copy application files
 COPY . /app
 

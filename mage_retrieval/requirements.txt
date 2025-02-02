@@ -8,7 +8,6 @@ fastapi
 fastapi[standard] 
 uvicorn
 python-multipart
-neo4j
 pydantic
 requests  
 langchain-community
@@ -16,7 +15,8 @@ pytest
 langchain_chroma
 langgraph
 llama_index
-nemoguardrails
+# nemoguardrails
 langchain_mongodb
-flashrank
-azure-cosmos
+forex_python
+pandas_ta
+yfinance

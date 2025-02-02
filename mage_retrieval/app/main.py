@@ -3,8 +3,10 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from nemoguardrails import LLMRails
+# from nemoguardrails import LLMRails
 from pydantic import BaseModel
+from utils.config import config, load_env_variables
+
 
 from agents.llm_functions import agent_hybrid_retriever
 from retrievers.kg_retriever import *
@@ -16,7 +18,7 @@ logging.getLogger("neo4j.notifications").setLevel(logging.ERROR)
 
 
 # adding guardrails configs
-guardrails_llm = LLMRails(config=guardrails_config)
+# guardrails_llm = LLMRails(config=guardrails_config)
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -30,7 +32,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+LLM_PROVIDER= config[env_name].LLM_PROVIDER
+LLM_MODEL_NAME= config[env_name].LLM_MODEL_NAME
+TEMPERATURE= config[env_name].TEMPERATURE
 class RetrievalRequest(BaseModel):
     query: str
 
@@ -52,7 +56,7 @@ async def ask_agentic_question(
     }
     global question_global  # Declare global variables
     question_global = data["query"]
-    selected_llm_model = get_llm_model(LLM_PROVIDER, LLM_MODEL_NAME, TEMPERATURE)
+    selected_llm_model = get_llm_model("openai", "gpt-4o", 0)
     ai_response = await agent_hybrid_retriever(data["query"], selected_llm_model,
                                                hybrid_kg_ensemble_retriever_with_guardrails,multimodal_retriever)
     return ai_response

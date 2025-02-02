@@ -1,7 +1,7 @@
 import os
 # from langchain_community.vectorstores import AzurechromaDBVectorSearch
 import chromadb
-from app.utils.config import config, load_env_variables
+from utils.config import config, load_env_variables
 from langchain_chroma import Chroma
 
 # Load environment variables once
